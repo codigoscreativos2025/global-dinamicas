@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createGame, activateGame, deleteGame } from "@/app/actions/admin";
-import Image from "next/image";
+import { QuizGame } from "./games/QuizGame";
+import { WordSearchGame } from "./games/WordSearchGame";
 
 export function AdminGames({ games }: { games: any[] }) {
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,10 @@ export function AdminGames({ games }: { games: any[] }) {
 
   // Word Search Builder State
   const [words, setWords] = useState<string[]>([""]);
+
+  const [showPreview, setShowPreview] = useState(false);
+  const [timeLimitPreview, setTimeLimitPreview] = useState("0");
+  const [titlePreview, setTitlePreview] = useState("");
 
   useEffect(() => {
     setCurrentUrl(window.location.origin);
@@ -79,7 +84,7 @@ export function AdminGames({ games }: { games: any[] }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-white p-8 rounded-2xl flex flex-col items-center">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">Escanea para Jugar</h3>
-            <Image 
+            <img 
               src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(currentUrl)}`}
               alt="QR Code"
               width={300} height={300}
@@ -98,7 +103,7 @@ export function AdminGames({ games }: { games: any[] }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Título</label>
-            <input name="title" required className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white" placeholder="Ej. Dinámica de Jóvenes" />
+            <input name="title" required value={titlePreview} onChange={(e) => setTitlePreview(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white" placeholder="Ej. Dinámica de Jóvenes" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -106,7 +111,6 @@ export function AdminGames({ games }: { games: any[] }) {
               <select name="type" value={type} onChange={(e)=>setType(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-sm">
                 <option value="QUIZ">Quiz</option>
                 <option value="WORD_SEARCH">Sopa de Letras</option>
-                {/* <option value="SURVEY">Encuesta</option> */}
               </select>
             </div>
             <div>
@@ -119,7 +123,7 @@ export function AdminGames({ games }: { games: any[] }) {
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Límite de Tiempo (segundos)</label>
-            <input type="number" name="timeLimit" defaultValue="0" className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white" placeholder="0 para sin límite" />
+            <input type="number" name="timeLimit" value={timeLimitPreview} onChange={(e) => setTimeLimitPreview(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white" placeholder="0 para sin límite" />
           </div>
 
           <div className="pt-4 border-t border-gray-800">
@@ -186,11 +190,36 @@ export function AdminGames({ games }: { games: any[] }) {
             )}
           </div>
 
-          <button disabled={loading} className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold transition disabled:opacity-50 mt-4 shadow-lg shadow-orange-500/20">
-            {loading ? "Creando..." : "Crear Juego"}
-          </button>
+          <div className="flex gap-2 mt-4">
+            <button type="button" onClick={() => setShowPreview(true)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-bold transition shadow-lg">
+              Previsualizar
+            </button>
+            <button disabled={loading} className="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold transition disabled:opacity-50 shadow-lg shadow-orange-500/20">
+              {loading ? "Creando..." : "Crear Juego"}
+            </button>
+          </div>
         </form>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gray-950 p-4 md:p-8 rounded-3xl w-full max-w-sm h-[800px] max-h-[90vh] border-8 border-gray-900 shadow-2xl relative flex flex-col overflow-hidden">
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-gray-800 rounded-full"></div>
+            
+            <div className="flex-1 overflow-y-auto pt-6 pb-2">
+              <div className="pointer-events-none">
+                {type === "QUIZ" && <QuizGame game={{ title: titlePreview || "Título", config: JSON.stringify(questions), timeLimit: parseInt(timeLimitPreview) || 0 }} />}
+                {type === "WORD_SEARCH" && <WordSearchGame game={{ title: titlePreview || "Título", config: JSON.stringify(words.filter(w=>w.trim()!=="")), timeLimit: parseInt(timeLimitPreview) || 0 }} />}
+              </div>
+            </div>
+
+            <button onClick={() => setShowPreview(false)} className="w-full mt-4 px-6 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 font-bold">
+              Cerrar Previsualización
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center justify-between">

@@ -135,12 +135,12 @@ export function WordSearchGame({ game }: { game: any }) {
 
   return (
     <div className="flex flex-col h-full relative items-center">
-      <div className="w-full flex justify-between items-center mb-4">
+      <div className="w-full flex justify-between items-center mb-6">
         <h3 className="text-orange-500 font-bold uppercase tracking-wider text-sm">{game.title}</h3>
         {timeLeft !== null && (
-          <span className={`text-sm font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-orange-400'}`}>
+          <div className={`flex items-center gap-2 text-xl md:text-2xl font-black px-4 py-1.5 rounded-lg border-2 ${timeLeft <= 10 ? 'text-red-500 border-red-500/50 animate-pulse bg-red-500/10' : 'text-orange-400 border-orange-500/30 bg-orange-500/10'}`}>
             ⏳ {timeLeft}s
-          </span>
+          </div>
         )}
       </div>
       

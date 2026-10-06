@@ -1,20 +1,14 @@
 import { getActiveGameForPlayer } from "@/app/actions/game";
 import { QuizGame } from "@/components/games/QuizGame";
 import { WordSearchGame } from "@/components/games/WordSearchGame";
-// import { SurveyGame } from "@/components/games/SurveyGame";
+import { WaitingRoom } from "@/components/WaitingRoom";
 import Image from "next/image";
 
 export default async function PlayPage() {
   const { user, game, hasPlayed } = await getActiveGameForPlayer();
 
   if (!game) {
-    return (
-      <div className="flex flex-col items-center justify-center flex-1 w-full px-6 py-12">
-        <Image src="/logotipo.png" alt="Logo" width={180} height={60} className="mb-8 opacity-50" />
-        <h2 className="text-2xl font-bold text-white mb-2">Aún no es momento</h2>
-        <p className="text-gray-400 text-center">No hay ninguna dinámica activa en este momento. Mira la pantalla principal.</p>
-      </div>
-    );
+    return <WaitingRoom />;
   }
 
   if (hasPlayed) {

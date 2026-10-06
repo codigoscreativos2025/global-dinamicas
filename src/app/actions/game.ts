@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+export async function checkActiveGame() {
+  const activeGame = await prisma.game.findFirst({
+    where: { isActive: true },
+    select: { id: true }
+  });
+  return !!activeGame;
+}
+
 export async function getActiveGameForPlayer() {
   const cookieStore = await cookies();
   const playerId = cookieStore.get("playerId")?.value;
