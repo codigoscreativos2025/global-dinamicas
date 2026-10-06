@@ -10,7 +10,7 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   cedula    String   @unique
-  email     String   @unique
+  phone     String?
   name      String
   role      String   @default("PLAYER") // "PLAYER" or "ADMIN"
   createdAt DateTime @default(now())

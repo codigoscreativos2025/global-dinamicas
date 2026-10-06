@@ -17,6 +17,9 @@ export default function AdminLayout({
           <a href="/admin" className="block px-4 py-3 rounded-lg bg-gradient-to-r from-orange-500/20 to-transparent text-orange-400 font-medium border-l-4 border-orange-500">
             Juego del Día
           </a>
+          <a href="/admin/history" className="block px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition font-medium">
+            Historial
+          </a>
         </nav>
       </aside>
       

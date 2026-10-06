@@ -6,13 +6,13 @@ import { Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function RegisterForm() {
-  const [needsName, setNeedsName] = useState(false);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [cedula, setCedula] = useState("");
-  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,16 +22,16 @@ export function RegisterForm() {
     try {
       const formData = new FormData();
       formData.append("cedula", cedula);
-      formData.append("email", email);
-      if (needsName) {
+      if (needsRegistration) {
         formData.append("name", name);
+        formData.append("phone", phone);
       }
 
       const result = await loginOrRegister(formData);
       if (result?.error) {
         setError(result.error);
-      } else if (result?.needsName) {
-        setNeedsName(true);
+      } else if (result?.needsNameAndPhone) {
+        setNeedsRegistration(true);
       }
     } catch (err) {
       setError("Ocurrió un error. Intenta de nuevo.");
@@ -58,46 +58,46 @@ export function RegisterForm() {
             onChange={(e) => setCedula(e.target.value)}
             className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
             placeholder="Ej. 12345678"
-            readOnly={needsName}
-            disabled={loading}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-300">Correo Electrónico</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-            placeholder="correo@ejemplo.com"
-            readOnly={needsName}
+            readOnly={needsRegistration}
             disabled={loading}
           />
         </div>
 
         <AnimatePresence>
-          {needsName && (
+          {needsRegistration && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="space-y-1 overflow-hidden"
+              className="space-y-4 overflow-hidden pt-2"
             >
-              <div className="pt-2 pb-1 text-sm text-orange-400">
-                Parece que eres nuevo, ¡cuéntanos tu nombre!
+              <div className="text-sm text-orange-400">
+                Parece que eres nuevo, ¡completa tu registro!
               </div>
-              <label className="text-sm font-medium text-gray-300">Nombre Completo</label>
-              <input
-                type="text"
-                required={needsName}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                placeholder="Ej. Juan Pérez"
-                disabled={loading}
-              />
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-300">Nombre Completo</label>
+                <input
+                  type="text"
+                  required={needsRegistration}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                  placeholder="Ej. Juan Pérez"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-300">Teléfono</label>
+                <input
+                  type="tel"
+                  required={needsRegistration}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                  placeholder="Ej. 04141234567"
+                  disabled={loading}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -112,7 +112,7 @@ export function RegisterForm() {
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <>
-            <span>{needsName ? "Comenzar a Jugar" : "Ingresar"}</span>
+            <span>{needsRegistration ? "Comenzar a Jugar" : "Ingresar"}</span>
             <ArrowRight className="w-5 h-5" />
           </>
         )}

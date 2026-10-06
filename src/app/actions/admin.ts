@@ -15,11 +15,14 @@ export async function createGame(formData: FormData) {
   const podiumSize = parseInt(formData.get("podiumSize") as string || "3");
   const config = formData.get("config") as string;
 
+  const timeLimit = parseInt(formData.get("timeLimit") as string || "0");
+
   await prisma.game.create({
     data: {
       title,
       type,
       podiumSize,
+      timeLimit,
       config,
     }
   });

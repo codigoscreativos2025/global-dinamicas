@@ -55,8 +55,8 @@ export async function submitGameResult(gameId: string, score: number, timeMs: nu
 
   await prisma.gameResult.create({
     data: {
-      userId: playerId,
-      gameId,
+      user: { connect: { id: playerId } },
+      game: { connect: { id: gameId } },
       score,
       timeMs,
       data

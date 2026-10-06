@@ -7,10 +7,11 @@ import { useRouter } from "next/navigation";
 // Utility to generate a word search grid
 function generateGrid(words: string[], size: number = 10) {
   const grid = Array.from({ length: size }, () => Array(size).fill(""));
+  const answerMap: Record<string, {r:number, c:number}[]> = {};
   const dirs = [[0,1], [1,0], [1,1], [-1,1]]; // right, down, diag-down-right, diag-up-right
 
   const placeWord = (word: string) => {
-    for (let attempt = 0; attempt < 50; attempt++) {
+    for (let attempt = 0; attempt < 100; attempt++) {
       const d = dirs[Math.floor(Math.random() * dirs.length)];
       const row = Math.floor(Math.random() * size);
       const col = Math.floor(Math.random() * size);
@@ -26,9 +27,14 @@ function generateGrid(words: string[], size: number = 10) {
       }
 
       if (canPlace) {
+        const cells = [];
         for (let i = 0; i < word.length; i++) {
-          grid[row + d[0] * i][col + d[1] * i] = word[i];
+          const r = row + d[0] * i;
+          const c = col + d[1] * i;
+          grid[r][c] = word[i];
+          cells.push({ r, c });
         }
+        answerMap[word] = cells;
         return true;
       }
     }
@@ -46,7 +52,7 @@ function generateGrid(words: string[], size: number = 10) {
     }
   }
 
-  return grid;
+  return { grid, answerMap };
 }
 
 export function WordSearchGame({ game }: { game: any }) {
@@ -59,13 +65,17 @@ export function WordSearchGame({ game }: { game: any }) {
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
+  const [answerMap, setAnswerMap] = useState<Record<string, {r:number, c:number}[]>>({});
+
   useEffect(() => {
     try {
       const parsedWords = JSON.parse(game.config) as string[];
       setWords(parsedWords);
       // Auto-hide words based on a 10x10 or 12x12 grid
       const size = parsedWords.join("").length > 30 ? 12 : 10;
-      setGrid(generateGrid(parsedWords, size));
+      const generated = generateGrid(parsedWords, size);
+      setGrid(generated.grid);
+      setAnswerMap(generated.answerMap);
       setStartTime(Date.now());
       if (game.timeLimit > 0) {
         setTimeLeft(game.timeLimit);
@@ -100,12 +110,20 @@ export function WordSearchGame({ game }: { game: any }) {
     }
     setSelectedCells(newSelected);
 
-    // Check if the current selection matches a word
-    const currentWord1 = newSelected.map(cell => grid[cell.r][cell.c]).join("");
-    const currentWord2 = [...newSelected].reverse().map(cell => grid[cell.r][cell.c]).join("");
-
-    const matchedWord = words.find(w => w === currentWord1 || w === currentWord2);
+    // Check if the current selection exactly matches any word's coordinates in the answerMap
+    // Regardless of the order the user clicked them!
+    const selectedKeys = newSelected.map(cell => `${cell.r},${cell.c}`).sort();
     
+    let matchedWord = null;
+    for (const [word, cells] of Object.entries(answerMap)) {
+      if (cells.length !== selectedKeys.length) continue;
+      const answerKeys = cells.map(cell => `${cell.r},${cell.c}`).sort();
+      if (selectedKeys.every((val, index) => val === answerKeys[index])) {
+        matchedWord = word;
+        break;
+      }
+    }
+
     if (matchedWord && !foundWords.includes(matchedWord)) {
       const newFound = [...foundWords, matchedWord];
       setFoundWords(newFound);
@@ -156,12 +174,25 @@ export function WordSearchGame({ game }: { game: any }) {
         {grid.map((row, rIdx) => 
           row.map((letter, cIdx) => {
             const isSelected = selectedCells.some(cell => cell.r === rIdx && cell.c === cIdx);
+            
+            // If it's preview mode, highlight ALL cells that belong to an answer
+            let isPreviewAnswer = false;
+            if (!game.id) {
+              for (const cells of Object.values(answerMap)) {
+                if (cells.some(cell => cell.r === rIdx && cell.c === cIdx)) {
+                  isPreviewAnswer = true;
+                  break;
+                }
+              }
+            }
+
             return (
               <button
                 key={`${rIdx}-${cIdx}`}
                 onClick={() => toggleCell(rIdx, cIdx)}
                 className={`w-full h-full flex items-center justify-center rounded font-bold text-lg md:text-xl transition-all select-none
-                  ${isSelected ? 'bg-orange-500 text-white scale-95 shadow-inner' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}
+                  ${isSelected ? 'bg-orange-500 text-white scale-95 shadow-inner' : 
+                    (isPreviewAnswer ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
                 `}
               >
                 {letter}

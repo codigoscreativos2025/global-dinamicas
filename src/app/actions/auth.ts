@@ -6,37 +6,34 @@ import { redirect } from "next/navigation";
 
 export async function loginOrRegister(formData: FormData) {
   const cedula = formData.get("cedula") as string;
-  const email = formData.get("email") as string;
   const name = formData.get("name") as string;
+  const phone = formData.get("phone") as string;
 
-  if (!cedula || !email) {
-    return { error: "Cédula y correo son requeridos" };
+  if (!cedula) {
+    return { error: "La Cédula es requerida" };
   }
 
   let user = await prisma.user.findUnique({
     where: { cedula },
   });
 
-  if (user) {
-    // If name is provided but user exists, just ignore it and log in.
-    // If they provided a different email, we could update it, but for simplicity, we just log in.
-  } else {
+  if (!user) {
     // User doesn't exist
-    if (!name) {
-      // Need name to register
-      return { needsName: true };
+    if (!name || !phone) {
+      // Need name and phone to register
+      return { needsNameAndPhone: true };
     }
     
     try {
       user = await prisma.user.create({
         data: {
           cedula,
-          email,
+          phone,
           name,
         },
       });
     } catch (error) {
-      return { error: "El correo o cédula ya están en uso por otra cuenta." };
+      return { error: "La cédula ya está registrada." };
     }
   }
 
