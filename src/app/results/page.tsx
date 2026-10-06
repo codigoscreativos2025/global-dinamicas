@@ -7,6 +7,11 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function ResultsPage() {
   const [data, setData] = useState<{game: any, results: any[]}>({ game: null, results: [] });
+  const [currentUrl, setCurrentUrl] = useState("");
+
+  useEffect(() => {
+    setCurrentUrl(window.location.origin);
+  }, []);
 
   // Component to render timer client-side without re-rendering everything
   const TimeLeftDisplay = ({ activatedAt, timeLimit }: { activatedAt: string, timeLimit: number }) => {
@@ -74,8 +79,20 @@ export default function ResultsPage() {
         <motion.div 
           animate={{ scale: [0.95, 1.05, 0.95], rotate: [-2, 2, -2] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-col items-center"
         >
-          <Image src="/logotipo.png" alt="Logo" width={400} height={130} className="relative z-10 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]" />
+          <Image src="/logotipo.png" alt="Logo" width={400} height={130} className="relative z-10 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mb-8" />
+          {currentUrl && (
+            <div className="bg-white p-4 rounded-2xl shadow-[0_0_50px_rgba(255,255,255,0.1)] relative z-10">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentUrl)}`}
+                alt="QR Code"
+                width={200} height={200}
+                className="rounded-lg"
+              />
+              <p className="text-black font-bold text-center mt-2 text-sm uppercase">Escanea para Jugar</p>
+            </div>
+          )}
         </motion.div>
         <p className="mt-8 text-gray-500 font-bold uppercase tracking-widest animate-pulse">Esperando dinámica...</p>
       </div>
@@ -109,8 +126,23 @@ export default function ResultsPage() {
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[600px] bg-orange-600/20 rounded-full blur-[150px] pointer-events-none" />
 
-      <header className="p-8 flex items-center justify-between relative z-10">
-        <Image src="/logotipo.png" alt="Logo" width={200} height={60} className="drop-shadow-xl" />
+      <header className="p-8 flex items-start justify-between relative z-10">
+        <div className="flex flex-col items-start gap-4">
+          <Image src="/logotipo.png" alt="Logo" width={200} height={60} className="drop-shadow-xl" />
+          {currentUrl && (
+            <div className="bg-white p-2 rounded-xl shadow-lg flex items-center gap-3">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(currentUrl)}`}
+                alt="QR Code"
+                width={80} height={80}
+                className="rounded-md"
+              />
+              <div className="text-black pr-2">
+                <p className="font-black text-sm uppercase leading-none">Escanea<br/>para jugar</p>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="text-right">
           <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600 uppercase tracking-widest drop-shadow-sm">
             {isSurvey ? "Respuestas" : "Resultados"}
