@@ -23,7 +23,7 @@ export default function RootLayout({
           {children}
         </main>
         <footer className="fixed bottom-0 w-full text-center py-3 px-6 text-xs text-gray-500/80 z-50 bg-gray-950/80 backdrop-blur-sm border-t border-gray-800/50">
-          Desarrollado por SolucionesPivot - Barquisimeto
+          Desarrollado por PivotSoluciones - Barquisimeto - codigoscretivos2025@gmail.com
         </footer>
       </body>
     </html>
