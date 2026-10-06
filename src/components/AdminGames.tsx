@@ -1,85 +1,84 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { createGame, activateGame, deleteGame } from "@/app/actions/admin";
 import { QuizGame } from "./games/QuizGame";
 import { WordSearchGame } from "./games/WordSearchGame";
 
 export function AdminGames({ games }: { games: any[] }) {
+  const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState("QUIZ");
   const [showQR, setShowQR] = useState(false);
   const [currentUrl, setCurrentUrl] = useState("");
 
+  const [title, setTitle] = useState("");
+  const [timeLimit, setTimeLimit] = useState("0");
+  const [podiumSize, setPodiumSize] = useState("3");
+
   // Quiz Builder State
   const [questions, setQuestions] = useState([{ q: "", options: ["", ""], correct: 0 }]);
+  const [currentQIndex, setCurrentQIndex] = useState(0);
 
   // Word Search Builder State
-  const [words, setWords] = useState<string[]>([""]);
-
-  const [showPreview, setShowPreview] = useState(false);
-  const [timeLimitPreview, setTimeLimitPreview] = useState("0");
-  const [titlePreview, setTitlePreview] = useState("");
+  const [words, setWords] = useState<string[]>(["", "", ""]);
 
   useEffect(() => {
     setCurrentUrl(window.location.origin);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleCreate = async () => {
     setLoading(true);
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("type", type);
+    formData.append("podiumSize", podiumSize);
+    formData.append("timeLimit", timeLimit);
     
-    // Inject the config based on the visual builder
     let configStr = "";
     if (type === "QUIZ") {
       configStr = JSON.stringify(questions);
     } else if (type === "WORD_SEARCH") {
       configStr = JSON.stringify(words.filter(w => w.trim() !== ""));
     } else {
-      configStr = formData.get("config") as string || "[]";
+      configStr = "[]";
     }
-    formData.set("config", configStr);
+    formData.append("config", configStr);
 
-    await createGame(formData);
-    form.reset();
-    
-    // Reset builders
-    setQuestions([{ q: "", options: ["", ""], correct: 0 }]);
-    setWords([""]);
-    
-    setLoading(false);
-  };
-
-  const addQuestion = () => setQuestions([...questions, { q: "", options: ["", ""], correct: 0 }]);
-  const updateQuestion = (idx: number, field: string, val: any) => {
-    const n = [...questions];
-    if (field === "q") n[idx].q = val;
-    if (field === "correct") n[idx].correct = val;
-    setQuestions(n);
-  };
-  const updateOption = (qIdx: number, oIdx: number, val: string) => {
-    const n = [...questions];
-    n[qIdx].options[oIdx] = val;
-    setQuestions(n);
-  };
-  const addOption = (qIdx: number) => {
-    const n = [...questions];
-    n[qIdx].options.push("");
-    setQuestions(n);
+    startTransition(async () => {
+      await createGame(formData);
+      setTitle("");
+      setQuestions([{ q: "", options: ["", ""], correct: 0 }]);
+      setCurrentQIndex(0);
+      setWords(["", "", ""]);
+      setLoading(false);
+    });
   };
 
-  const addWord = () => setWords([...words, ""]);
-  const updateWord = (idx: number, val: string) => {
-    const n = [...words];
-    n[idx] = val.toUpperCase();
-    setWords(n);
+  const handleActivate = (id: string) => {
+    startTransition(async () => {
+      await activateGame(id);
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+      await deleteGame(id);
+    });
+  };
+
+  // Preview mock game object
+  const previewGame = {
+    title: title || "Título del Juego",
+    type: type,
+    config: type === "QUIZ" ? JSON.stringify(questions) : JSON.stringify(words.filter(w => w.trim() !== "")),
+    timeLimit: parseInt(timeLimit) || 0,
+    podiumSize: parseInt(podiumSize) || 3
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* QR Modal */}
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Modal QR */}
       {showQR && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-white p-8 rounded-2xl flex flex-col items-center">
@@ -91,177 +90,234 @@ export function AdminGames({ games }: { games: any[] }) {
               className="mb-6 rounded-lg shadow-sm"
             />
             <p className="text-gray-600 font-medium mb-6">{currentUrl}</p>
-            <button onClick={() => setShowQR(false)} className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800">
+            <button type="button" onClick={() => setShowQR(false)} className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800">
               Cerrar
             </button>
           </div>
         </div>
       )}
 
-      <div className="lg:col-span-1 bg-gray-900 border border-gray-800 rounded-xl p-6 h-fit">
-        <h3 className="text-lg font-semibold text-white mb-4">Nuevo Juego</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {/* LEFT COLUMN: BUILDER */}
+      <div className="lg:col-span-5 bg-gray-900 border border-gray-800 rounded-2xl p-6 h-fit shadow-xl">
+        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <span className="w-2 h-6 bg-orange-500 rounded-full"></span>
+          Creador de Juegos
+        </h3>
+        
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Título</label>
-            <input name="title" required value={titlePreview} onChange={(e) => setTitlePreview(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white" placeholder="Ej. Dinámica de Jóvenes" />
+            <label className="block text-sm text-gray-400 mb-1">Título de la Dinámica</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white" placeholder="Ej. Reto de Jóvenes" />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Tipo</label>
-              <select name="type" value={type} onChange={(e)=>setType(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-sm">
-                <option value="QUIZ">Quiz</option>
+              <label className="block text-sm text-gray-400 mb-1">Tipo de Juego</label>
+              <select value={type} onChange={e => setType(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm">
+                <option value="QUIZ">Quiz Interactivo</option>
                 <option value="WORD_SEARCH">Sopa de Letras</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Puestos</label>
-              <select name="podiumSize" className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-sm">
-                <option value="1">1er Lugar</option>
-                <option value="3">Top 3</option>
+              <label className="block text-sm text-gray-400 mb-1">Premiación</label>
+              <select value={podiumSize} onChange={e => setPodiumSize(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm">
+                <option value="1">Solo 1er Lugar</option>
+                <option value="3">Top 3 (Podio)</option>
               </select>
             </div>
           </div>
+          
           <div>
             <label className="block text-sm text-gray-400 mb-1">Límite de Tiempo (segundos)</label>
-            <input type="number" name="timeLimit" value={timeLimitPreview} onChange={(e) => setTimeLimitPreview(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white" placeholder="0 para sin límite" />
+            <input type="number" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white" placeholder="0 = Sin límite" />
           </div>
 
-          <div className="pt-4 border-t border-gray-800">
+          <div className="pt-6 border-t border-gray-800">
+            {/* QUIZ BUILDER WIZARD */}
             {type === "QUIZ" && (
-              <div className="space-y-6">
-                <label className="block text-sm font-medium text-orange-400">Preguntas del Quiz</label>
-                {questions.map((q, qIdx) => (
-                  <div key={qIdx} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
-                    <input 
-                      type="text" required placeholder={`Pregunta ${qIdx + 1}`}
-                      value={q.q} onChange={e => updateQuestion(qIdx, "q", e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white"
-                    />
-                    <div className="space-y-2 pl-2 border-l-2 border-gray-700">
-                      {q.options.map((opt, oIdx) => (
-                        <div key={oIdx} className="flex items-center gap-2">
-                          <input 
-                            type="radio" name={`correct-${qIdx}`} checked={q.correct === oIdx}
-                            onChange={() => updateQuestion(qIdx, "correct", oIdx)}
-                            className="text-orange-500 focus:ring-orange-500"
-                          />
-                          <input 
-                            type="text" required placeholder={`Opción ${oIdx + 1}`}
-                            value={opt} onChange={e => updateOption(qIdx, oIdx, e.target.value)}
-                            className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white"
-                          />
-                        </div>
-                      ))}
-                      <button type="button" onClick={() => addOption(qIdx)} className="text-xs text-orange-500 hover:text-orange-400">
-                        + Agregar Opción
-                      </button>
-                    </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-orange-400 font-bold text-sm">Pregunta {currentQIndex + 1} de {questions.length}</h4>
+                  <div className="flex gap-1">
+                    <button type="button" onClick={() => setCurrentQIndex(Math.max(0, currentQIndex - 1))} disabled={currentQIndex === 0} className="px-2 py-1 bg-gray-800 text-gray-400 rounded disabled:opacity-30 hover:text-white">&lt;</button>
+                    <button type="button" onClick={() => setCurrentQIndex(Math.min(questions.length - 1, currentQIndex + 1))} disabled={currentQIndex === questions.length - 1} className="px-2 py-1 bg-gray-800 text-gray-400 rounded disabled:opacity-30 hover:text-white">&gt;</button>
                   </div>
-                ))}
-                <button type="button" onClick={addQuestion} className="w-full py-2 border border-dashed border-gray-600 text-gray-400 rounded-lg text-sm hover:border-gray-500 hover:text-white transition">
+                </div>
+
+                <div className="bg-gray-800/50 border border-gray-700 p-4 rounded-xl space-y-4">
+                  <input 
+                    type="text" placeholder="Escribe la pregunta aquí..."
+                    value={questions[currentQIndex].q} 
+                    onChange={e => {
+                      const n = [...questions];
+                      n[currentQIndex].q = e.target.value;
+                      setQuestions(n);
+                    }}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-medium"
+                  />
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs text-gray-500 uppercase font-bold tracking-wider">Opciones de respuesta (Marca la correcta)</label>
+                    {questions[currentQIndex].options.map((opt, oIdx) => (
+                      <div key={oIdx} className="flex items-center gap-3">
+                        <input 
+                          type="radio" name="correctOpt" checked={questions[currentQIndex].correct === oIdx}
+                          onChange={() => {
+                            const n = [...questions];
+                            n[currentQIndex].correct = oIdx;
+                            setQuestions(n);
+                          }}
+                          className="w-5 h-5 text-orange-500 bg-gray-900 border-gray-700 focus:ring-orange-500"
+                        />
+                        <input 
+                          type="text" placeholder={`Opción ${oIdx + 1}`}
+                          value={opt} 
+                          onChange={e => {
+                            const n = [...questions];
+                            n[currentQIndex].options[oIdx] = e.target.value;
+                            setQuestions(n);
+                          }}
+                          className={`flex-1 bg-gray-900 border rounded-lg px-3 py-2 text-sm text-white transition-all ${questions[currentQIndex].correct === oIdx ? 'border-orange-500 shadow-[0_0_10px_rgba(249,112,21,0.2)]' : 'border-gray-700'}`}
+                        />
+                        <button type="button" onClick={() => {
+                          const n = [...questions];
+                          n[currentQIndex].options.splice(oIdx, 1);
+                          if (n[currentQIndex].correct >= n[currentQIndex].options.length) n[currentQIndex].correct = 0;
+                          setQuestions(n);
+                        }} className="text-gray-600 hover:text-red-500">
+                          ✖
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => {
+                      const n = [...questions];
+                      n[currentQIndex].options.push("");
+                      setQuestions(n);
+                    }} className="text-orange-500 text-sm font-medium hover:underline mt-2">
+                      + Añadir opción
+                    </button>
+                  </div>
+                </div>
+
+                <button type="button" onClick={() => {
+                  setQuestions([...questions, { q: "", options: ["", ""], correct: 0 }]);
+                  setCurrentQIndex(questions.length);
+                }} className="w-full py-3 border-2 border-dashed border-gray-700 text-gray-400 rounded-xl font-medium hover:border-gray-500 hover:text-white transition">
                   + Nueva Pregunta
                 </button>
               </div>
             )}
 
+            {/* WORD SEARCH BUILDER WIZARD */}
             {type === "WORD_SEARCH" && (
               <div className="space-y-4">
-                <label className="block text-sm font-medium text-orange-400">Palabras a buscar</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="block text-sm font-medium text-orange-400">Palabras a esconder</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {words.map((w, idx) => (
-                    <input 
-                      key={idx} type="text" required placeholder="PALABRA"
-                      value={w} onChange={e => updateWord(idx, e.target.value)}
-                      className="w-24 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white uppercase text-center"
-                    />
+                    <div key={idx} className="relative">
+                      <input 
+                        type="text" placeholder="PALABRA"
+                        value={w} onChange={e => {
+                          const n = [...words];
+                          n[idx] = e.target.value.toUpperCase();
+                          setWords(n);
+                        }}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white uppercase text-center focus:border-orange-500 focus:outline-none"
+                      />
+                      <button type="button" onClick={() => {
+                        const n = [...words];
+                        n.splice(idx, 1);
+                        setWords(n);
+                      }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 opacity-0 hover:opacity-100 transition">
+                        ✖
+                      </button>
+                    </div>
                   ))}
-                  <button type="button" onClick={addWord} className="w-24 border border-dashed border-gray-600 text-gray-400 rounded text-sm hover:border-gray-500 hover:text-white transition">
+                  <button type="button" onClick={() => setWords([...words, ""])} className="w-full py-2 border-2 border-dashed border-gray-700 text-gray-400 rounded-lg text-sm font-medium hover:border-gray-500 hover:text-white transition">
                     + Añadir
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">El sistema generará la sopa de letras y las esconderá automáticamente usando estas palabras.</p>
-              </div>
-            )}
-            
-            {type === "SURVEY" && (
-              <div>
-                <textarea name="config" className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-sm" placeholder="Configuración JSON"></textarea>
               </div>
             )}
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <button type="button" onClick={() => setShowPreview(true)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-bold transition shadow-lg">
-              Previsualizar
-            </button>
-            <button disabled={loading} className="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold transition disabled:opacity-50 shadow-lg shadow-orange-500/20">
-              {loading ? "Creando..." : "Crear Juego"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-gray-950 p-4 md:p-8 rounded-3xl w-full max-w-sm h-[800px] max-h-[90vh] border-8 border-gray-900 shadow-2xl relative flex flex-col overflow-hidden">
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-gray-800 rounded-full"></div>
-            
-            <div className="flex-1 overflow-y-auto pt-6 pb-2">
-              <div className="pointer-events-none">
-                {type === "QUIZ" && <QuizGame game={{ title: titlePreview || "Título", config: JSON.stringify(questions), timeLimit: parseInt(timeLimitPreview) || 0 }} />}
-                {type === "WORD_SEARCH" && <WordSearchGame game={{ title: titlePreview || "Título", config: JSON.stringify(words.filter(w=>w.trim()!=="")), timeLimit: parseInt(timeLimitPreview) || 0 }} />}
-              </div>
-            </div>
-
-            <button onClick={() => setShowPreview(false)} className="w-full mt-4 px-6 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 font-bold">
-              Cerrar Previsualización
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="lg:col-span-2 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-white">Juegos Registrados</h3>
-          <button onClick={() => setShowQR(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-blue-500/20 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-            Mostrar QR
+          <button type="button" onClick={handleCreate} disabled={loading || isPending} className="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-orange-500/25 transition disabled:opacity-50 mt-6">
+            {loading || isPending ? "Guardando..." : "Crear Dinámica"}
           </button>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          {games.map(g => (
-            <div key={g.id} className={`p-5 border rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${g.isActive ? 'bg-gradient-to-r from-orange-500/10 to-transparent border-orange-500/50 shadow-md shadow-orange-500/5' : 'bg-gray-900 border-gray-800'}`}>
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h4 className="font-bold text-white text-lg">{g.title}</h4>
-                  {g.isActive && <span className="bg-orange-500 text-[10px] px-2 py-0.5 rounded-full text-white font-bold tracking-wider uppercase shadow-sm">Activo Hoy</span>}
+      {/* RIGHT COLUMN: GAMES LIST & PREVIEW */}
+      <div className="lg:col-span-7 space-y-8 flex flex-col h-full">
+        {/* Games List */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl flex-none">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <span className="w-2 h-6 bg-blue-500 rounded-full"></span>
+              Juegos Registrados
+            </h3>
+            <button type="button" onClick={() => setShowQR(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+              QR para Jugar
+            </button>
+          </div>
+
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            {games.map(g => (
+              <div key={g.id} className={`p-4 border rounded-xl flex items-center justify-between gap-4 transition-all ${g.isActive ? 'bg-orange-500/10 border-orange-500/50' : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'}`}>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h4 className="font-bold text-white">{g.title}</h4>
+                    {g.isActive && <span className="bg-orange-500 text-[10px] px-2 py-0.5 rounded-full text-white font-bold tracking-wider uppercase">Activo</span>}
+                  </div>
+                  <div className="flex gap-3 text-xs text-gray-400 mt-1 font-medium">
+                    <span>{g.type === 'QUIZ' ? '📝 Quiz' : '🔍 Sopa Letras'}</span>
+                    <span>🏆 Top {g.podiumSize}</span>
+                    {g.timeLimit > 0 && <span>⏳ {g.timeLimit}s</span>}
+                  </div>
                 </div>
-                <div className="flex gap-3 text-sm text-gray-400">
-                  <span className="bg-gray-800 px-2 py-0.5 rounded text-gray-300">{g.type}</span>
-                  <span>Podio: Top {g.podiumSize}</span>
-                  {g.timeLimit > 0 && <span>⏳ {g.timeLimit}s</span>}
-                </div>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                {!g.isActive && (
-                  <button onClick={() => activateGame(g.id)} className="flex-1 sm:flex-none px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition">
-                    Activar
+                <div className="flex gap-2">
+                  {!g.isActive && (
+                    <button type="button" onClick={() => handleActivate(g.id)} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-md text-xs font-bold transition shadow-sm">
+                      Activar
+                    </button>
+                  )}
+                  <button type="button" onClick={() => handleDelete(g.id)} className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md text-xs font-bold transition">
+                    Borrar
                   </button>
+                </div>
+              </div>
+            ))}
+            {games.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No hay juegos creados.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Live Preview */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col relative overflow-hidden">
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span className="w-2 h-6 bg-green-500 rounded-full"></span>
+            Previsualización en Vivo
+          </h3>
+          <p className="text-sm text-gray-400 mb-6">Así es como los jugadores verán el juego que estás creando a la izquierda.</p>
+          
+          <div className="flex-1 flex items-center justify-center min-h-[400px]">
+            {/* Phone Mockup Frame */}
+            <div className="w-full max-w-sm h-[600px] max-h-full bg-gray-950 border-[6px] border-gray-800 rounded-[2.5rem] p-4 relative shadow-2xl overflow-hidden flex flex-col">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-2xl z-20"></div>
+              
+              <div className="flex-1 overflow-y-auto mt-4 pointer-events-none">
+                {type === "QUIZ" ? (
+                  <QuizGame key={JSON.stringify(previewGame)} game={previewGame} />
+                ) : (
+                  <WordSearchGame key={JSON.stringify(previewGame)} game={previewGame} />
                 )}
-                <button onClick={() => deleteGame(g.id)} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-sm font-medium transition">
-                  Eliminar
-                </button>
               </div>
             </div>
-          ))}
-          {games.length === 0 && (
-            <div className="p-8 text-center bg-gray-900 border border-gray-800 rounded-2xl">
-              <p className="text-gray-500">No hay juegos configurados aún. ¡Crea el primero!</p>
-            </div>
-          )}
+          </div>
         </div>
+
       </div>
     </div>
   );
