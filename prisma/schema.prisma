@@ -28,6 +28,7 @@ model Game {
   config      String   // Stringified JSON containing words or questions
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  activatedAt DateTime? // When the game was set to active
   
   results     GameResult[]
 }

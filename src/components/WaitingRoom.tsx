@@ -28,7 +28,7 @@ export function WaitingRoom() {
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Image src="/logotipo.png" alt="Logo" width={220} height={80} className="mb-10 brightness-0 invert opacity-80" />
+        <Image src="/logotipo.png" alt="Logo" width={220} height={80} className="mb-10 opacity-80" />
       </motion.div>
       
       <div className="relative">

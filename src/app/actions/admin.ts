@@ -40,7 +40,7 @@ export async function activateGame(id: string) {
   // Activar el seleccionado
   await prisma.game.update({
     where: { id },
-    data: { isActive: true }
+    data: { isActive: true, activatedAt: new Date() }
   });
 
   revalidatePath("/admin");

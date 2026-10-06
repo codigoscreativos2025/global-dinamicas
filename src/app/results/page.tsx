@@ -8,6 +8,31 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function ResultsPage() {
   const [data, setData] = useState<{game: any, results: any[]}>({ game: null, results: [] });
 
+  // Component to render timer client-side without re-rendering everything
+  const TimeLeftDisplay = ({ activatedAt, timeLimit }: { activatedAt: string, timeLimit: number }) => {
+    const [timeLeft, setTimeLeft] = useState(() => {
+      const elapsed = Math.floor((Date.now() - new Date(activatedAt).getTime()) / 1000);
+      return Math.max(0, timeLimit - elapsed);
+    });
+
+    useEffect(() => {
+      if (timeLeft <= 0) return;
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - new Date(activatedAt).getTime()) / 1000);
+        setTimeLeft(Math.max(0, timeLimit - elapsed));
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [activatedAt, timeLimit, timeLeft]);
+
+    if (timeLeft <= 0) return <p className="text-red-500 font-bold mt-2 animate-pulse">¡TIEMPO AGOTADO!</p>;
+    
+    return (
+      <p className="text-orange-400 font-bold mt-2 text-2xl">
+        ⏳ {timeLeft}s
+      </p>
+    );
+  };
+
   useEffect(() => {
     // Initial fetch
     getLiveResults().then(setData);
@@ -22,8 +47,37 @@ export default function ResultsPage() {
 
   if (!data.game) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black">
-        <Image src="/logotipo.png" alt="Logo" width={300} height={100} className="opacity-20" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black relative overflow-hidden">
+        {/* Animated particles */}
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 bg-orange-500/30 rounded-full"
+            animate={{
+              y: [0, -20, 0],
+              x: [0, Math.random() * 40 - 20, 0],
+              opacity: [0, 0.5, 0],
+              scale: [0, Math.random() * 2 + 1, 0]
+            }}
+            transition={{
+              duration: Math.random() * 3 + 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+              ease: "easeInOut"
+            }}
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`
+            }}
+          />
+        ))}
+        <motion.div 
+          animate={{ scale: [0.95, 1.05, 0.95], rotate: [-2, 2, -2] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Image src="/logotipo.png" alt="Logo" width={400} height={130} className="relative z-10 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]" />
+        </motion.div>
+        <p className="mt-8 text-gray-500 font-bold uppercase tracking-widest animate-pulse">Esperando dinámica...</p>
       </div>
     );
   }
@@ -62,6 +116,12 @@ export default function ResultsPage() {
             {isSurvey ? "Respuestas" : "Resultados"}
           </h1>
           <p className="text-xl text-gray-400 font-medium">{data.game.title}</p>
+          {data.game.timeLimit > 0 && data.game.activatedAt && (
+            <TimeLeftDisplay 
+              activatedAt={data.game.activatedAt} 
+              timeLimit={data.game.timeLimit} 
+            />
+          )}
         </div>
       </header>
 
@@ -69,28 +129,81 @@ export default function ResultsPage() {
         {data.results.length === 0 ? (
           <p className="text-2xl text-gray-500 animate-pulse">Esperando jugadores...</p>
         ) : isSurvey && surveyConfig ? (
-          <div className="w-full max-w-4xl space-y-6">
+          <div className="w-full max-w-4xl">
             <h2 className="text-3xl font-black text-center mb-12">{surveyConfig.q}</h2>
-            {surveyConfig.options.map((opt: string, i: number) => {
-              const count = surveyCounts[i];
-              const percentage = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
-              return (
-                <div key={i} className="space-y-2">
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>{opt}</span>
-                    <span className="text-orange-400">{percentage}% ({count})</span>
-                  </div>
-                  <div className="w-full bg-gray-900 rounded-full h-8 overflow-hidden border border-gray-800 relative">
-                    <motion.div 
-                      className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${percentage}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                    />
-                  </div>
+            {surveyConfig.chartType === "vertical" ? (
+              <div className="flex items-end justify-center gap-8 h-80">
+                {surveyConfig.options.map((opt: string, i: number) => {
+                  const count = surveyCounts[i];
+                  const percentage = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-2">
+                      <span className="text-orange-400 font-bold">{percentage}%</span>
+                      <div className="w-24 bg-gray-900 rounded-t-lg overflow-hidden border-t border-x border-gray-800 relative h-64 flex flex-col justify-end">
+                        <motion.div 
+                          className="w-full bg-gradient-to-t from-orange-600 to-orange-400"
+                          initial={{ height: 0 }}
+                          animate={{ height: `${percentage}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                        />
+                      </div>
+                      <span className="font-bold max-w-[96px] text-center text-sm">{opt}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : surveyConfig.chartType === "pie" ? (
+              <div className="flex flex-col items-center">
+                <div 
+                  className="w-80 h-80 rounded-full mb-8 relative shadow-2xl"
+                  style={{
+                    background: `conic-gradient(${surveyConfig.options.map((opt: string, i: number) => {
+                      const prevCounts = surveyCounts.slice(0, i).reduce((a,b)=>a+b, 0);
+                      const start = totalVotes === 0 ? 0 : (prevCounts / totalVotes) * 100;
+                      const end = totalVotes === 0 ? 0 : ((prevCounts + surveyCounts[i]) / totalVotes) * 100;
+                      const colors = ["#f97316", "#f59e0b", "#ef4444", "#8b5cf6", "#3b82f6", "#10b981", "#64748b"];
+                      return `${colors[i % colors.length]} ${start}% ${end}%`;
+                    }).join(', ')})`
+                  }}
+                />
+                <div className="flex flex-wrap justify-center gap-6">
+                  {surveyConfig.options.map((opt: string, i: number) => {
+                    const count = surveyCounts[i];
+                    const percentage = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+                    const colors = ["bg-orange-500", "bg-yellow-500", "bg-red-500", "bg-purple-500", "bg-blue-500", "bg-emerald-500", "bg-slate-500"];
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full ${colors[i % colors.length]}`} />
+                        <span className="font-bold">{opt} ({percentage}%)</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {surveyConfig.options.map((opt: string, i: number) => {
+                  const count = surveyCounts[i];
+                  const percentage = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+                  return (
+                    <div key={i} className="space-y-2">
+                      <div className="flex justify-between text-lg font-bold">
+                        <span>{opt}</span>
+                        <span className="text-orange-400">{percentage}% ({count})</span>
+                      </div>
+                      <div className="w-full bg-gray-900 rounded-full h-8 overflow-hidden border border-gray-800 relative">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : (
           <div className="w-full max-w-5xl flex items-end justify-center gap-4 md:gap-8 min-h-[400px]">

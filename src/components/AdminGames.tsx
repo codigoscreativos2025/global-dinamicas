@@ -263,6 +263,21 @@ export function AdminGames({ games }: { games: any[] }) {
                   }}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-medium"
                 />
+
+                <label className="block text-sm font-medium text-orange-400 mt-4">Tipo de Gráfico</label>
+                <select 
+                  value={questions[0].chartType || "horizontal"} 
+                  onChange={e => {
+                    const n = [...questions];
+                    n[0].chartType = e.target.value;
+                    setQuestions(n);
+                  }}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm"
+                >
+                  <option value="horizontal">Barras Horizontales</option>
+                  <option value="vertical">Barras Verticales</option>
+                  <option value="pie">Gráfico de Torta</option>
+                </select>
                 
                 <label className="block text-sm font-medium text-orange-400 mt-4">Opciones de respuesta</label>
                 <div className="space-y-2">
