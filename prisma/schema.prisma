@@ -24,6 +24,7 @@ model Game {
   type        String   // "WORD_SEARCH", "SURVEY", "QUIZ"
   isActive    Boolean  @default(false)
   podiumSize  Int      @default(3) // 1 for first place, 3 for podium
+  timeLimit   Int      @default(0) // Time limit in seconds (0 means no limit)
   config      String   // Stringified JSON containing words or questions
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -40,6 +41,6 @@ model GameResult {
   data      String?  // Optional stringified JSON with specific answers
   createdAt DateTime @default(now())
   
-  user      User     @relation(fields: [userId], references: [id])
-  game      Game     @relation(fields: [gameId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }

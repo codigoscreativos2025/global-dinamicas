@@ -1,6 +1,6 @@
 import { getActiveGameForPlayer } from "@/app/actions/game";
 import { QuizGame } from "@/components/games/QuizGame";
-// import { WordSearchGame } from "@/components/games/WordSearchGame";
+import { WordSearchGame } from "@/components/games/WordSearchGame";
 // import { SurveyGame } from "@/components/games/SurveyGame";
 import Image from "next/image";
 
@@ -42,7 +42,7 @@ export default async function PlayPage() {
 
       <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col">
         {game.type === "QUIZ" && <QuizGame game={game} />}
-        {/* {game.type === "WORD_SEARCH" && <WordSearchGame game={game} />} */}
+        {game.type === "WORD_SEARCH" && <WordSearchGame game={game} />}
         {/* {game.type === "SURVEY" && <SurveyGame game={game} />} */}
       </div>
     </div>

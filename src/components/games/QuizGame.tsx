@@ -15,14 +15,41 @@ export function QuizGame({ game }: { game: any }) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
 
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
   useEffect(() => {
     try {
       setQuestions(JSON.parse(game.config));
       setStartTime(Date.now());
+      if (game.timeLimit > 0) {
+        setTimeLeft(game.timeLimit);
+      }
     } catch (e) {
       console.error("Invalid game config");
     }
   }, [game]);
+
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0 || submitting) return;
+    const t = setInterval(() => {
+      setTimeLeft(l => {
+        if (l && l <= 1) {
+          clearInterval(t);
+          finishGame();
+          return 0;
+        }
+        return l ? l - 1 : 0;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [timeLeft, submitting]);
+
+  const finishGame = async (bonusScore = 0) => {
+    setSubmitting(true);
+    const timeMs = Date.now() - startTime;
+    await submitGameResult(game.id, score + bonusScore, timeMs);
+    router.refresh();
+  };
 
   const handleOptionSelect = async (index: number) => {
     if (showFeedback || submitting) return;
@@ -42,11 +69,7 @@ export function QuizGame({ game }: { game: any }) {
         setSelectedOption(null);
         setShowFeedback(false);
       } else {
-        // Finish
-        setSubmitting(true);
-        const timeMs = Date.now() - startTime;
-        await submitGameResult(game.id, score + (isCorrect ? 1 : 0), timeMs);
-        router.refresh(); // This will trigger the "Completado" view
+        await finishGame(isCorrect ? 1 : 0);
       }
     }, 1500);
   };
@@ -59,9 +82,16 @@ export function QuizGame({ game }: { game: any }) {
     <div className="flex flex-col h-full relative">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-orange-500 font-bold uppercase tracking-wider text-sm">{game.title}</h3>
-        <span className="text-gray-400 text-sm font-medium">
-          {currentIndex + 1} / {questions.length}
-        </span>
+        <div className="flex items-center gap-4">
+          {timeLeft !== null && (
+            <span className={`text-sm font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-orange-400'}`}>
+              ⏳ {timeLeft}s
+            </span>
+          )}
+          <span className="text-gray-400 text-sm font-medium">
+            {currentIndex + 1} / {questions.length}
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col justify-center relative">

@@ -17,12 +17,12 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <body className={`${inter.className} bg-gray-950 text-gray-100 min-h-screen flex flex-col antialiased selection:bg-orange-500/30`}>
-        <main className="flex-1 flex flex-col relative overflow-hidden">
+        <main className="flex-1 flex flex-col relative overflow-auto pb-12">
           {/* Subtle background glow effect */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-[500px] bg-orange-600/10 rounded-full blur-[120px] pointer-events-none" />
           {children}
         </main>
-        <footer className="text-center py-4 px-6 text-xs text-gray-500/80 relative z-10 border-t border-gray-800/50">
+        <footer className="fixed bottom-0 w-full text-center py-3 px-6 text-xs text-gray-500/80 z-50 bg-gray-950/80 backdrop-blur-sm border-t border-gray-800/50">
           Desarrollado por SolucionesPivot - Barquisimeto
         </footer>
       </body>
