@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  cedula    String   @unique
+  email     String   @unique
+  name      String
+  role      String   @default("PLAYER") // "PLAYER" or "ADMIN"
+  createdAt DateTime @default(now())
+  
+  results   GameResult[]
+}
+
+model Game {
+  id          String   @id @default(uuid())
+  title       String
+  type        String   // "WORD_SEARCH", "SURVEY", "QUIZ"
+  isActive    Boolean  @default(false)
+  podiumSize  Int      @default(3) // 1 for first place, 3 for podium
+  config      String   // Stringified JSON containing words or questions
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  results     GameResult[]
+}
+
+model GameResult {
+  id        String   @id @default(uuid())
+  userId    String
+  gameId    String
+  score     Int
+  timeMs    Int      // Milliseconds taken to complete (useful for tie-breaking)
+  data      String?  // Optional stringified JSON with specific answers
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  game      Game     @relation(fields: [gameId], references: [id])
+}
