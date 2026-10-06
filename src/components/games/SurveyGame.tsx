@@ -53,7 +53,7 @@ export function SurveyGame({ game }: { game: any }) {
                 : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500 hover:bg-gray-700'}
             `}
           >
-            {opt}
+            {opt || `Opción ${index + 1}`}
           </button>
         ))}
       </div>

@@ -8,6 +8,26 @@ import { SurveyGame } from "./games/SurveyGame";
 
 export function AdminGames({ games }: { games: any[] }) {
   const [isPending, startTransition] = useTransition();
+
+  // Timer component for active games
+  const AdminTimer = ({ activatedAt, timeLimit }: { activatedAt: string, timeLimit: number }) => {
+    const [timeLeft, setTimeLeft] = useState(() => {
+      const elapsed = Math.floor((Date.now() - new Date(activatedAt).getTime()) / 1000);
+      return Math.max(0, timeLimit - elapsed);
+    });
+
+    useEffect(() => {
+      if (timeLeft <= 0) return;
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - new Date(activatedAt).getTime()) / 1000);
+        setTimeLeft(Math.max(0, timeLimit - elapsed));
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [activatedAt, timeLimit, timeLeft]);
+
+    if (timeLeft <= 0) return <span className="text-red-500 font-bold ml-2">Finalizado</span>;
+    return <span className="text-orange-400 font-bold ml-2">⏳ {timeLeft}s</span>;
+  };
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState("QUIZ");
   const [showQR, setShowQR] = useState(false);
@@ -42,7 +62,11 @@ export function AdminGames({ games }: { games: any[] }) {
     } else if (type === "WORD_SEARCH") {
       configStr = JSON.stringify(words.filter(w => w.trim() !== ""));
     } else if (type === "SURVEY") {
-      configStr = JSON.stringify({ q: questions[0].q, options: questions[0].options.filter(o => o.trim() !== "") });
+      configStr = JSON.stringify({ 
+        q: questions[0].q, 
+        options: questions[0].options.filter(o => o.trim() !== ""),
+        chartType: (questions[0] as any).chartType || "horizontal"
+      });
     } else {
       configStr = "[]";
     }
@@ -74,7 +98,15 @@ export function AdminGames({ games }: { games: any[] }) {
   const previewGame = {
     title: title || "Título del Juego",
     type: type,
-    config: type === "QUIZ" ? JSON.stringify(questions) : JSON.stringify(words.filter(w => w.trim() !== "")),
+    config: type === "QUIZ" 
+      ? JSON.stringify(questions) 
+      : type === "SURVEY"
+        ? JSON.stringify({ 
+            q: questions[0].q || "Pregunta de ejemplo", 
+            options: questions[0].options.length > 0 ? questions[0].options : ["Opción 1", "Opción 2"],
+            chartType: (questions[0] as any).chartType || "horizontal"
+          })
+        : JSON.stringify(words.some(w => w.trim() !== "") ? words.filter(w => w.trim() !== "") : ["HOLA", "MUNDO"]),
     timeLimit: parseInt(timeLimit) || 0,
     podiumSize: parseInt(podiumSize) || 3
   };
@@ -354,7 +386,10 @@ export function AdminGames({ games }: { games: any[] }) {
                     {g.timeLimit > 0 && <span>⏳ {g.timeLimit}s</span>}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  {g.isActive && g.timeLimit > 0 && g.activatedAt && (
+                    <AdminTimer activatedAt={g.activatedAt} timeLimit={g.timeLimit} />
+                  )}
                   {!g.isActive && (
                     <button type="button" onClick={() => handleActivate(g.id)} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-md text-xs font-bold transition shadow-sm">
                       Activar
