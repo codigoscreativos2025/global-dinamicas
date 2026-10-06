@@ -29,6 +29,26 @@ export default function ResultsPage() {
   }
 
   const isPodium = data.game.podiumSize > 1;
+  const isSurvey = data.game.type === "SURVEY";
+  
+  let surveyConfig = null;
+  let surveyCounts: number[] = [];
+  if (isSurvey) {
+    try {
+      surveyConfig = JSON.parse(data.game.config);
+      surveyCounts = Array(surveyConfig.options.length).fill(0);
+      data.results.forEach(r => {
+        try {
+          const parsedData = JSON.parse(r.data);
+          if (parsedData && typeof parsedData.selectedIndex === 'number') {
+            surveyCounts[parsedData.selectedIndex]++;
+          }
+        } catch(e){}
+      });
+    } catch(e){}
+  }
+
+  const totalVotes = surveyCounts.reduce((a, b) => a + b, 0);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
@@ -39,7 +59,7 @@ export default function ResultsPage() {
         <Image src="/logotipo.png" alt="Logo" width={200} height={60} className="drop-shadow-xl" />
         <div className="text-right">
           <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600 uppercase tracking-widest drop-shadow-sm">
-            Resultados
+            {isSurvey ? "Respuestas" : "Resultados"}
           </h1>
           <p className="text-xl text-gray-400 font-medium">{data.game.title}</p>
         </div>
@@ -48,6 +68,30 @@ export default function ResultsPage() {
       <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-8">
         {data.results.length === 0 ? (
           <p className="text-2xl text-gray-500 animate-pulse">Esperando jugadores...</p>
+        ) : isSurvey && surveyConfig ? (
+          <div className="w-full max-w-4xl space-y-6">
+            <h2 className="text-3xl font-black text-center mb-12">{surveyConfig.q}</h2>
+            {surveyConfig.options.map((opt: string, i: number) => {
+              const count = surveyCounts[i];
+              const percentage = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+              return (
+                <div key={i} className="space-y-2">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>{opt}</span>
+                    <span className="text-orange-400">{percentage}% ({count})</span>
+                  </div>
+                  <div className="w-full bg-gray-900 rounded-full h-8 overflow-hidden border border-gray-800 relative">
+                    <motion.div 
+                      className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${percentage}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div className="w-full max-w-5xl flex items-end justify-center gap-4 md:gap-8 min-h-[400px]">
             <AnimatePresence>

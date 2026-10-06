@@ -23,6 +23,7 @@ export function SurveyGame({ game }: { game: any }) {
   const handleOptionSelect = async (index: number) => {
     if (submitting) return;
     setSelectedOption(index);
+    if (!game.id) return; // Ignore on preview
     setSubmitting(true);
     
     // For survey, score is 0, timeMs is tracked, and data stores the selected index.
@@ -31,7 +32,7 @@ export function SurveyGame({ game }: { game: any }) {
     router.refresh();
   };
 
-  if (!config.options.length) return null;
+  if (!config || !config.options || !config.options.length) return null;
 
   return (
     <div className="flex flex-col h-full relative">

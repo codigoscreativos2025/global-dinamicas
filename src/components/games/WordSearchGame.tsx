@@ -86,7 +86,7 @@ export function WordSearchGame({ game }: { game: any }) {
   }, [game]);
 
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || submitting) return;
+    if (timeLeft === null || timeLeft <= 0 || submitting || !game.id) return;
     const t = setInterval(() => {
       setTimeLeft(l => {
         if (l && l <= 1) {
@@ -98,7 +98,7 @@ export function WordSearchGame({ game }: { game: any }) {
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [timeLeft, submitting]);
+  }, [timeLeft, submitting, game.id]);
 
   const toggleCell = (r: number, c: number) => {
     const isSelected = selectedCells.some(cell => cell.r === r && cell.c === c);
@@ -131,12 +131,14 @@ export function WordSearchGame({ game }: { game: any }) {
 
       // Check if finished
       if (newFound.length === words.length) {
+        if (!game.id) return;
         finishGame();
       }
     }
   };
 
   const finishGame = async () => {
+    if (!game.id) return;
     setSubmitting(true);
     const timeMs = Date.now() - startTime;
     // Score based on found words length at time of submission

@@ -116,11 +116,16 @@ export function AdminGames({ games }: { games: any[] }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Tipo de Juego</label>
-              <select value={type} onChange={e => setType(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm">
-                <option value="QUIZ">Quiz Interactivo</option>
-                <option value="WORD_SEARCH">Sopa de Letras</option>
-                <option value="SURVEY">Encuesta Rápida</option>
+              <select value={type} onChange={e => setType(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm" title="Selecciona el tipo de dinámica">
+                <option value="QUIZ" title="El jugador que responda más preguntas correctamente en menos tiempo gana.">Quiz Interactivo</option>
+                <option value="WORD_SEARCH" title="El jugador que encuentre más palabras en menos tiempo gana.">Sopa de Letras</option>
+                <option value="SURVEY" title="No hay ganador. Las respuestas se muestran en vivo en la pantalla de ProPresenter.">Encuesta Rápida</option>
               </select>
+              <p className="text-[10px] text-gray-500 mt-1">
+                {type === "QUIZ" && "Gana quien tenga más respuestas correctas en menos tiempo."}
+                {type === "WORD_SEARCH" && "Gana quien encuentre más palabras en menos tiempo."}
+                {type === "SURVEY" && "No hay podio. Los resultados se grafican en vivo."}
+              </p>
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Premiación</label>
@@ -311,7 +316,7 @@ export function AdminGames({ games }: { games: any[] }) {
             </h3>
             <div className="flex items-center gap-2">
               <a href="/results" target="_blank" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-purple-500/20 transition flex items-center gap-2">
-                Pantalla ProPresenter
+                Resultados en vivo
               </a>
               <a href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(currentUrl)}`} target="_blank" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>

@@ -30,7 +30,7 @@ export function QuizGame({ game }: { game: any }) {
   }, [game]);
 
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || submitting) return;
+    if (timeLeft === null || timeLeft <= 0 || submitting || !game.id) return;
     const t = setInterval(() => {
       setTimeLeft(l => {
         if (l && l <= 1) {
@@ -42,9 +42,10 @@ export function QuizGame({ game }: { game: any }) {
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [timeLeft, submitting]);
+  }, [timeLeft, submitting, game.id]);
 
   const finishGame = async (bonusScore = 0) => {
+    if (!game.id) return;
     setSubmitting(true);
     const timeMs = Date.now() - startTime;
     await submitGameResult(game.id, score + bonusScore, timeMs);
@@ -69,7 +70,7 @@ export function QuizGame({ game }: { game: any }) {
         setSelectedOption(null);
         setShowFeedback(false);
       } else {
-        await finishGame(isCorrect ? 1 : 0);
+        if (game.id) await finishGame(isCorrect ? 1 : 0);
       }
     }, 1500);
   };
